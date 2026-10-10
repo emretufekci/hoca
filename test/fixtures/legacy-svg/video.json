@@ -1,0 +1,13 @@
+{
+  "language": "tr",
+  "scenes": [
+    {
+      "module": "scene-1.mjs",
+      "narration": "Dikkat mekanizması, bir sözcüğün diğer sözcüklerden hangilerine bakacağını belirler. Her bağlantının gücü, cümlenin bağlamına göre değişir."
+    },
+    {
+      "module": "scene-2.mjs",
+      "narration": "Örneğin, yüz sözcüğü sayı, yüz bölgesi veya yüzmek eylemi anlamına gelebilir. Denizde sözcüğü güçlü bir bağlantı kurunca, model yüzmek anlamını öne çıkarır."
+    }
+  ]
+}

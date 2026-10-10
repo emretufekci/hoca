@@ -1,0 +1,32 @@
+{
+  "name": "hoca",
+  "version": "2.0.0",
+  "private": true,
+  "license": "MIT",
+  "repository": "github:emretufekci/hoca",
+  "type": "module",
+  "description": "Hoca (Turkish for teacher): animated explainer videos on any topic, from any agent and any voice",
+  "bin": { "hoca": "bin/hoca.mjs" },
+  "imports": {
+    "#kit": "./lib/kit.mjs"
+  },
+  "scripts": {
+    "hoca": "node bin/hoca.mjs",
+    "make": "node bin/hoca.mjs make",
+    "brief": "node bin/hoca.mjs brief",
+    "check": "node bin/hoca.mjs check",
+    "render": "node bin/hoca.mjs render",
+    "config": "node bin/hoca.mjs config",
+    "doctor": "node bin/hoca.mjs doctor",
+    "list": "node bin/hoca.mjs list",
+    "setup": "bash scripts/setup-voices.sh",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.132.1",
+    "mathjax-full": "^3.2.1"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

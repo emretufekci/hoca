@@ -1,0 +1,38 @@
+# Secrets and local settings
+.env
+*.env
+!.env.example
+!test/fixtures/*.env
+
+# Dependencies and downloaded models
+node_modules/
+.venv/
+.cache/
+voices/
+__pycache__/
+*.pyc
+
+# Your videos: everything Hoca makes lands here
+outputs/*
+!outputs/.gitkeep
+
+# Generated files inside the tracked examples
+examples/**/*.mp4
+examples/**/*.srt
+examples/**/*.render.json
+examples/**/audio/
+examples/**/preview/
+**/.work/
+**/.brief.md
+test/fixtures/**/preview/
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+npm-debug.log*
+
+# Launch posts and other notes; never published
+drafts/

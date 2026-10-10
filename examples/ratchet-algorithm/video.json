@@ -1,0 +1,22 @@
+{
+  "title": "How the ratchet keeps old messages safe",
+  "language": "en",
+  "scenes": [
+    {
+      "module": "scene-1.mjs",
+      "narration": "Someone steals your phone's encryption key today. Can they read yesterday's messages? With a ratchet, no."
+    },
+    {
+      "module": "scene-2.mjs",
+      "narration": "Every message gets its own key. A one-way function turns the current chain key into a message key and the next chain key. Then the old chain key is deleted."
+    },
+    {
+      "module": "scene-3.mjs",
+      "narration": "It only turns forward, like a ratchet. A thief holding today's key cannot run the function backwards."
+    },
+    {
+      "module": "scene-4.mjs",
+      "narration": "But they could still follow you forward. So with each reply, both phones swap fresh public keys and mix in a new shared secret. The chain restarts, and the thief is locked out again."
+    }
+  ]
+}
