@@ -22,11 +22,38 @@ Click a preview for the full video with sound. The agent keeps its source notes 
 
 ## Quick start
 
-You need macOS or Linux with [Node 22+](https://nodejs.org), plus three tools:
+You need [Node 22+](https://nodejs.org) and three tools: FFmpeg, librsvg and [uv](https://docs.astral.sh/uv/). Install them for your system:
+
+**macOS**
 
 ```bash
 brew install ffmpeg librsvg uv
 ```
+
+**Linux**
+
+```bash
+# Debian, Ubuntu
+sudo apt update && sudo apt install -y ffmpeg librsvg2-bin fontconfig curl git
+# Arch
+sudo pacman -S --needed ffmpeg librsvg fontconfig curl git
+# Fedora: enable RPM Fusion first (https://rpmfusion.org/Configuration); the stock ffmpeg-free has no H.264 encoder
+sudo dnf install -y librsvg2-tools fontconfig curl git && sudo dnf install -y ffmpeg --allowerasing
+
+curl -LsSf https://astral.sh/uv/install.sh | sh    # uv, on any distribution
+```
+
+If your distribution ships a Node older than 22, install a current one with [nvm](https://github.com/nvm-sh/nvm) (`nvm install 22`).
+
+**Windows**
+
+Hoca runs on Windows through [WSL 2](https://learn.microsoft.com/windows/wsl/install); it does not run in PowerShell or cmd directly, since the setup and the pipeline rely on a Unix shell. In an administrator PowerShell:
+
+```powershell
+wsl --install
+```
+
+Restart, open the Ubuntu terminal it installed, and follow the Linux steps above inside it. Clone the repo into the Linux home folder (`~/hoca`, not `/mnt/c/...`), where rendering is much faster. `explorer.exe outputs` opens the finished videos in Windows.
 
 Then, in this folder:
 
@@ -40,6 +67,16 @@ npm run hoca -- "Why is the sky blue?"     # 4. your first video
 Step 4 uses [Claude Code](https://claude.com/claude-code) to write the video. If you use Codex instead, add `--agent codex`. No API keys or config files are needed for either.
 
 The video lands in `outputs/<topic>/<agent>/<topic>.mp4`.
+
+## If you are a coding agent
+
+Asked to install Hoca, or to make a video with it? Do this, in order:
+
+1. **Install what is missing.** Check `node --version` (22 or newer), `ffmpeg`, `rsvg-convert` and `uv`, and install the absent ones with the command for this system from [Quick start](#quick-start). On Windows, work inside WSL 2.
+2. **Set up the repo.** Run `npm install`, then `npm run setup` (it downloads about 400 MB of voices once, so let it finish), then `npm run doctor`. Fix every `FAIL` line before going on; a `note` line is informational.
+3. **Write the video yourself.** Do not run `npm run hoca -- "<topic>"`: that starts a second agent to do the writing. Read [AGENTS.md](AGENTS.md) and follow it. In short: if the `hoca_*` MCP tools are available, call `hoca_brief`, write the files it asks for, call `hoca_check` until the frames read clearly, then `hoca_render`. Otherwise use `node bin/hoca.mjs brief "<topic>" --agent <you>`, then `check` and `render` the same way.
+4. **Take settings from the user, not from guesses.** Everything comes from `.env`. Pass a flag or tool argument (`--format landscape`, `--lang tr`, `--no-voiceover`) only when the user asked for it, and then on every command for that video. Do not edit `.env`.
+5. **Report** the MP4 path, its duration and anything you could not verify. A plan, a script or still frames is not a finished video.
 
 ## Make a video
 
