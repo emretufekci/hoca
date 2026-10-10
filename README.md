@@ -12,13 +12,23 @@ npm run hoca -- "Türev nedir" --lang tr
 
 Both videos below were made by Hoca from a single command. Claude Code wrote the script and the animation; the voice and every frame were produced on a laptop CPU (Apple M2 Pro), with no GPU and no speech API.
 
-| Turkish | English |
-| --- | --- |
-| [![Türev nedir?](docs/turev-nedir.gif)](docs/turev-nedir.mp4) | [![How text-to-speech works](docs/text-to-speech.gif)](docs/text-to-speech.mp4) |
-| `npm run hoca -- "Türev nedir" --lang tr` | `npm run hoca -- "How text-to-speech works"` |
-| Voice: EMA Lightning, on this machine's CPU | Voice: Kokoro, on this machine's CPU |
+<table>
+  <tr><th>Turkish</th><th>English</th></tr>
+  <tr>
+    <td><video src="https://github.com/user-attachments/assets/66993fc1-7982-4367-a510-8b6273fdb971" controls width="300"></video></td>
+    <td><video src="https://github.com/user-attachments/assets/83030a67-4269-4bb3-aae3-89577a94905b" controls width="300"></video></td>
+  </tr>
+  <tr>
+    <td><code>npm run hoca -- "Türev nedir" --lang tr</code></td>
+    <td><code>npm run hoca -- "How text-to-speech works"</code></td>
+  </tr>
+  <tr>
+    <td>Voice: EMA Lightning, on this machine's CPU</td>
+    <td>Voice: Kokoro, on this machine's CPU</td>
+  </tr>
+</table>
 
-Click a preview for the full video with sound. The agent keeps its source notes next to each video in `sources.md`.
+Press play for the full video with sound. The agent keeps its source notes next to each video in `sources.md`.
 
 ## Quick start
 
