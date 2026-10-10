@@ -1,0 +1,6 @@
+# Project-scoped Codex settings: registers Hoca's MCP server when Codex runs in this (trusted) folder.
+[mcp_servers.hoca]
+command = "node"
+args = ["bin/hoca.mjs", "mcp"]
+# Rendering a video can take several minutes; Codex's default tool timeout is one minute.
+tool_timeout_sec = 1800

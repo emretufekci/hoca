@@ -19,6 +19,7 @@
     "config": "node bin/hoca.mjs config",
     "doctor": "node bin/hoca.mjs doctor",
     "list": "node bin/hoca.mjs list",
+    "mcp": "node bin/hoca.mjs mcp",
     "setup": "bash scripts/setup-voices.sh",
     "test": "node --test test/*.test.js"
   },

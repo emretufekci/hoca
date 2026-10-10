@@ -17,6 +17,7 @@ const HELP = `Usage: npm run hoca -- "<topic>" [options]
   config               Show the resolved settings
   doctor               Check tools, voice and agent
   list                 List projects under the output folder
+  mcp                  Serve these commands as MCP tools over stdio (Claude Code, Codex)
 
 <project> is a folder, or a topic (resolved to outputs/<topic>/<agent>/).
 
@@ -32,7 +33,7 @@ Options (each overrides the matching .env key for this run):
   --json               Machine-readable output (check, config)
   -o, --out FILE       Output file (render, tts)`;
 
-const COMMANDS = ['make', 'brief', 'check', 'render', 'tts', 'config', 'doctor', 'list'];
+const COMMANDS = ['make', 'brief', 'check', 'render', 'tts', 'config', 'doctor', 'list', 'mcp'];
 const FLAGS = { '--agent': 'AGENT', '--agent-name': 'AGENT_NAME', '--model': 'AGENT_MODEL', '--format': 'VIDEO_FORMAT', '--duration': 'VIDEO_DURATION', '--fps': 'VIDEO_FPS', '--lang': 'LANGUAGE', '--voice-lang': 'VOICEOVER_LANG', '--subtitle-lang': 'SUBTITLE_LANG', '--tts': 'TTS_PROVIDER' };
 const SWITCHES = { '--voiceover': ['VOICEOVER', 'true'], '--no-voiceover': ['VOICEOVER', 'false'], '--subtitles': ['SUBTITLES', 'true'], '--no-subtitles': ['SUBTITLES', 'false'] };
 
@@ -49,6 +50,8 @@ function parseArgs(argv) {
     else if (arg === '-o' || arg === '--out') options.out = value();
     else if (arg === '--force' || arg === '--json' || arg === '--help') options[arg.slice(2)] = true;
     else if (arg === '-h') options.help = true;
+    // Everything after "--" is positional, so a topic or folder may start with a dash.
+    else if (arg === '--') { positional.push(...argv.slice(i + 1)); break; }
     else if (arg.startsWith('-') && arg !== '-') throw new Error(`Unknown option ${arg}. See --help.`);
     else positional.push(arg);
   }
@@ -75,6 +78,12 @@ async function main() {
   const { command, args, overrides, options } = parseArgs(process.argv.slice(2));
   if (!command || options.help) { console.log(HELP); return; }
   const envFile = options.env || process.env.HOCA_ENV_FILE;
+  if (command === 'mcp') {
+    // Starts before the settings are read: a broken .env should fail a tool call, not the server.
+    if (options.env) process.env.HOCA_ENV_FILE = path.resolve(options.env);
+    (await import('../lib/mcp.mjs')).serve();
+    return;
+  }
   const config = loadConfig({ envFile, overrides });
   // Child processes (the agent, its checks) must see the same overrides.
   const childEnv = { ...process.env, ...overrides, ...(envFile ? { HOCA_ENV_FILE: path.resolve(envFile) } : {}) };
@@ -130,8 +139,10 @@ async function main() {
     }
     case 'check': {
       const { checkProject, formatCheck } = await import('../lib/check.mjs');
+      // With --json, stdout carries the result alone: whatever a scene module prints goes to stderr.
+      if (options.json) console.log = console.error;
       const result = await checkProject(resolveProject(config, args[0], options), config);
-      if (options.json) console.log(JSON.stringify({ errors: result.errors, warnings: result.warnings, estimatedDuration: result.estimatedDuration, sheet: result.sheet }));
+      if (options.json) process.stdout.write(JSON.stringify({ errors: result.errors, warnings: result.warnings, estimatedDuration: result.estimatedDuration, sheet: result.sheet, scenes: result.timeline?.scenes.length, words: result.words, budget: result.budget }) + '\n');
       else console.log(formatCheck(result, ROOT));
       if (result.errors.length && !options.json) process.exitCode = 1;
       return;

@@ -144,11 +144,37 @@ npm run hoca -- check <project>      # validate and write preview frames; no spe
 npm run hoca -- render <project>     # MP4 + .srt
 npm run hoca -- tts "<text>" -o clip.wav
 npm run hoca -- config | doctor | list
+npm run hoca -- mcp                  # MCP server over stdio, for Claude Code and Codex
 ```
 
 `<project>` is a folder or a topic. Run `npm link` once to type `hoca "<topic>"` instead of `npm run hoca -- "<topic>"`.
 
 Working interactively also works: open Claude Code or Codex in this folder and ask for a video. [AGENTS.md](AGENTS.md) tells the agent how to get its brief and where to write.
+
+</details>
+
+<details>
+<summary><b>MCP server: Hoca as tools in Claude Code and Codex</b></summary>
+
+Hoca ships an [MCP](https://modelcontextprotocol.io) server, so an agent can call the pipeline as tools instead of shell commands. It is already registered for this folder: `.mcp.json` for Claude Code and `.codex/config.toml` for Codex. Open either one here, approve the `hoca` server when asked (Codex loads project settings only in a trusted folder), and ask for a video.
+
+| Tool | What it does |
+| --- | --- |
+| `hoca_brief` | Creates the project folder and returns the brief for a topic |
+| `hoca_check` | Validates the project and returns the contact sheet as an image |
+| `hoca_render` | Voice, subtitles and MP4, with progress while it runs |
+| `hoca_list`, `hoca_config`, `hoca_doctor` | Projects, settings in effect, environment check |
+
+Settings still come from `.env`; each tool also takes `format`, `duration`, `language`, `voice_language`, `subtitle_language`, `voiceover` and `subtitles` for one video. The project lands in `outputs/<topic>/claude/` or `outputs/<topic>/codex/` according to who is calling.
+
+To use it from another folder, or from any other MCP client, register the server by its full path:
+
+```bash
+claude mcp add --scope user hoca -- node /path/to/hoca/bin/hoca.mjs mcp
+codex mcp add hoca -- node /path/to/hoca/bin/hoca.mjs mcp
+```
+
+Projects are still written under this repo's `outputs/`, so the agent needs permission to write there. Codex stops a tool call after 60 seconds unless `tool_timeout_sec` is raised for the server (the bundled config sets 1800), which matters for renders. The server has no `make` tool: the agent that calls it is the one writing the video. `hoca_check` and `hoca_render` run the scene modules the agent wrote, as your user and outside any sandbox your client puts around the agent's own commands, so approve them as you would approve running its code.
 
 </details>
 

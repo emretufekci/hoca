@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "hoca": {
+      "command": "node",
+      "args": ["bin/hoca.mjs", "mcp"]
+    }
+  }
+}

@@ -23,14 +23,18 @@ Hoca (Turkish for teacher) turns a topic into a short animated explainer video. 
 
 3. Report the MP4 path and its duration, plus anything you could not verify. Do not stop at a plan, a script or static frames when a video was requested.
 
+## Through MCP
+
+The same steps are available as MCP tools, registered for Claude Code in `.mcp.json` and for Codex in `.codex/config.toml`: `hoca_brief`, `hoca_check` (returns the contact sheet as an image), `hoca_render`, `hoca_list`, `hoca_config` and `hoca_doctor`. When they are available, use them in place of the shell commands above. The project folder defaults to your client's name, and a setting the user states goes in as a tool argument (`format`, `language`, `voiceover`, ...) on every call for that video.
+
 ## Layout
 
 | Path | Purpose |
 | --- | --- |
 | `.env`, `.env.example` | All settings. `node bin/hoca.mjs config` shows what is in effect. |
-| `bin/hoca.mjs` | The CLI: `make`, `brief`, `check`, `render`, `tts`, `config`, `doctor`, `list`. |
+| `bin/hoca.mjs` | The CLI: `make`, `brief`, `check`, `render`, `tts`, `config`, `doctor`, `list`, `mcp`. |
 | `lib/kit.mjs` | Scene helpers, a port of manim's palette and animations to SVG, imported as `#kit`. |
-| `lib/` | Config, timeline, TTS providers, subtitles, renderer, agent runners. |
+| `lib/` | Config, timeline, TTS providers, subtitles, renderer, agent runners, MCP server. |
 | `prompts/brief.md` | Template for the brief. |
 | `outputs/<topic>/<agent>/` | One project per topic and agent: sources, previews, audio cache and the video. |
 

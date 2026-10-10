@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import { tmpdir } from 'node:os';
+import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { parseEnv, loadConfig, slugify, projectPaths, ROOT } from '../lib/config.mjs';
 import { validateManifest, readProject, buildTimeline, sceneContext, wordBudget } from '../lib/project.mjs';
 import { chunks, sentences, toSrt, burnIn } from '../lib/subtitles.mjs';
@@ -119,6 +121,8 @@ test('agent commands and briefs reflect the settings', () => {
   assert.ok(!/\{\{\w+\}\}/.test(brief), 'no unfilled placeholders');
   for (const expected of ['1080×1920', 'Vertical video', '"subtitle"', 'Turkish', `${wordBudget(c)} words`, '=== FILE: video.json ===', 'outputs/ratchets/claude']) assert.ok(brief.includes(expected), expected);
   assert.ok(buildBrief(config({ VOICEOVER: 'false', SUBTITLES: 'false' }), 'x y', '/tmp/x', { mode: 'cli' }).includes('The video is silent'));
+  assert.ok(buildBrief(c, 'Ratchets', projectPaths(c, 'Ratchets').dir, { mode: 'mcp' }).includes(`Call \`hoca_check\` with project \`${projectPaths(c, 'Ratchets').dir}\``));
+  assert.throws(() => projectPaths(c, 'x', { slug: '../../elsewhere' }), /--slug/);
 });
 
 test('kit scenes are valid, animated and escape text', () => {
@@ -154,4 +158,42 @@ test('auto picks the installed local voice for the language', async () => {
   assert.ok(['piper', 'say'].includes(await resolveProvider(v('en', '/nonexistent/bin/python')).catch(() => 'say')));
   assert.throws(() => config({ TTS_PROVIDER: 'nope' }), /TTS_PROVIDER/);
   assert.equal(config({ TTS_PROVIDER: 'antalia' }).voiceover.provider, 'antalia');
+});
+
+test('MCP server lists the tools and runs them', async () => {
+  const { spawn } = await import('node:child_process');
+  const { createInterface } = await import('node:readline');
+  const child = spawn(process.execPath, [path.join(ROOT, 'bin/hoca.mjs'), 'mcp', '--env', 'test/fixtures/empty.env'], { stdio: ['pipe', 'pipe', 'inherit'] });
+  const waiting = new Map();
+  createInterface({ input: child.stdout }).on('line', line => { const message = JSON.parse(line); waiting.get(message.id)?.(message); });
+  let next = 0;
+  const call = (method, params) => new Promise(resolve => { waiting.set(++next, resolve); child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id: next, method, params })}\n`); });
+  const noisy = await mkdtemp(path.join(tmpdir(), 'hoca-mcp-'));
+  await writeFile(path.join(noisy, 'video.json'), JSON.stringify({ language: 'en', scenes: [{ module: 's1.mjs', narration: 'A bar grows. Then it stops.' }] }));
+  await writeFile(path.join(noisy, 's1.mjs'), "console.log('debug');\nexport const render = ctx => `<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 ${ctx.width} ${ctx.height}\"><rect width=\"${ctx.width * ctx.progress}\" height=\"50\" fill=\"red\"/></svg>`;\n");
+  try {
+    const { result: hello } = await call('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'codex-mcp-client', version: '0' } });
+    assert.deepEqual([hello.protocolVersion, hello.serverInfo.name, Object.keys(hello.capabilities)], ['2025-06-18', 'hoca', ['tools']]);
+    const { result: { tools } } = await call('tools/list');
+    assert.deepEqual(tools.map(tool => tool.name), ['hoca_brief', 'hoca_check', 'hoca_render', 'hoca_list', 'hoca_config', 'hoca_doctor']);
+    assert.deepEqual(tools[0].inputSchema.required, ['topic']);
+    // The folder follows the calling client, and a per-call setting overrides .env.
+    const { result: settings } = await call('tools/call', { name: 'hoca_config', arguments: { format: 'landscape' } });
+    assert.match(settings.content[0].text, /agent\s+codex[\s\S]*landscape 1920x1080/);
+    const { result: failed } = await call('tools/call', { name: 'hoca_check', arguments: { project: 'no-such-project' } });
+    assert.ok(failed.isError && /No project at/.test(failed.content[0].text));
+    // A scene that prints must not corrupt the result, and a project is never read as an option.
+    const { result: checked } = await call('tools/call', { name: 'hoca_check', arguments: { project: noisy } });
+    assert.match(checked.content[0].text, /OK\s+1 scenes/);
+    const { result: dashed } = await call('tools/call', { name: 'hoca_render', arguments: { project: '--help' } });
+    assert.ok(dashed.isError && !/Usage:/.test(dashed.content[0].text));
+    const { result: escaped } = await call('tools/call', { name: 'hoca_brief', arguments: { topic: 'x', slug: '../../elsewhere' } });
+    assert.ok(escaped.isError && /--slug/.test(escaped.content[0].text));
+    // A line that is valid JSON but not a message gets an error, and the server keeps running.
+    const invalid = new Promise(resolve => waiting.set(null, resolve));
+    child.stdin.write('null\n');
+    assert.equal((await invalid).error.code, -32600);
+    assert.equal((await call('tools/call', { name: 'nope' })).error.code, -32602);
+    assert.equal((await call('resources/list')).error.code, -32601);
+  } finally { child.stdin.end(); await rm(noisy, { recursive: true, force: true }); }
 });
