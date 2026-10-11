@@ -68,13 +68,17 @@ Restart, open the Ubuntu terminal it installed, and follow the Linux steps above
 Then, in this folder:
 
 ```bash
-npm install        # 1. dependencies
-npm run setup      # 2. local voices (Turkish and English, about 400 MB, one time)
-npm run doctor     # 3. checks that everything is ready
-npm run hoca -- "Why is the sky blue?"     # 4. your first video
+npm install             # 1. dependencies
+cp .env.example .env    # 2. your settings: Hoca reads everything from this file
+npm run setup           # 3. local voices (Turkish and English, about 400 MB, one time)
+npm run doctor          # 4. checks that everything is ready
+npm run hoca -- "Why is the sky blue?"     # 5. your first video
 ```
 
-Step 4 uses [Claude Code](https://claude.com/claude-code) to write the video. If you use Codex instead, add `--agent codex`. No API keys or config files are needed for either.
+Hoca is configured through `.env`: who writes the video, its language, format, length, voice and subtitles all come from that file, and `npm run config` shows what is in effect. As copied, it gives you:
+
+- **Writer:** [Claude Code](https://claude.com/claude-code) (`AGENT=claude`). If you use Codex instead, set `AGENT=codex` or add `--agent codex`. Neither needs an API key.
+- **Voice:** EMA Lightning for Turkish and Kokoro for English, both local. Hoca picks by the video's language; `TTS_PROVIDER` overrides it.
 
 The video lands in `outputs/<topic>/<agent>/<topic>.mp4`.
 
@@ -83,7 +87,7 @@ The video lands in `outputs/<topic>/<agent>/<topic>.mp4`.
 Asked to install Hoca, or to make a video with it? Do this, in order:
 
 1. **Install what is missing.** Check `node --version` (22 or newer), `ffmpeg`, `rsvg-convert` and `uv`, and install the absent ones with the command for this system from [Quick start](#quick-start). On Windows, work inside WSL 2.
-2. **Set up the repo.** Run `npm install`, then `npm run setup` (it downloads about 400 MB of voices once, so let it finish), then `npm run doctor`. Fix every `FAIL` line before going on; a `note` line is informational.
+2. **Set up the repo.** Run `npm install`, then `cp .env.example .env` unless a `.env` is already there (never overwrite one), then `npm run setup` (it downloads about 400 MB of voices once, so let it finish), then `npm run doctor`. Fix every `FAIL` line before going on; a `note` line is informational.
 3. **Write the video yourself.** Do not run `npm run hoca -- "<topic>"`: that starts a second agent to do the writing. Read [AGENTS.md](AGENTS.md) and follow it. In short: if the `hoca_*` MCP tools are available, call `hoca_brief`, write the files it asks for, call `hoca_check` until the frames read clearly, then `hoca_render`. Otherwise use `node bin/hoca.mjs brief "<topic>" --agent <you>`, then `check` and `render` the same way.
 4. **Take settings from the user, not from guesses.** Everything comes from `.env`. Pass a flag or tool argument (`--format landscape`, `--lang tr`, `--no-voiceover`) only when the user asked for it, and then on every command for that video. Do not edit `.env`.
 5. **Report** the MP4 path, its duration and anything you could not verify. A plan, a script or still frames is not a finished video.
@@ -119,7 +123,7 @@ Writing the script takes a few minutes, since an AI agent researches the topic, 
 
 ## Settings
 
-Everything has a sensible default. To change the defaults for every video, copy `.env.example` to `.env` and edit it:
+Every setting lives in `.env`, the copy of `.env.example` you made in [Quick start](#quick-start) (`cp .env.example .env`). Edit it to change the defaults for every video:
 
 ```ini
 AGENT=claude            # who writes: claude | codex | ollama | openai | anthropic
