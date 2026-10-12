@@ -32,7 +32,7 @@ Press play for the full video with sound. The agent keeps its source notes next 
 
 ## Quick start
 
-You need [Node 22+](https://nodejs.org) and three tools: FFmpeg, librsvg and [uv](https://docs.astral.sh/uv/). Install them for your system:
+You need [Node 18.14+](https://nodejs.org) and three tools: FFmpeg, librsvg and [uv](https://docs.astral.sh/uv/). Install them for your system:
 
 **macOS**
 
@@ -53,7 +53,7 @@ sudo dnf install -y librsvg2-tools fontconfig curl git && sudo dnf install -y ff
 curl -LsSf https://astral.sh/uv/install.sh | sh    # uv, on any distribution
 ```
 
-If your distribution ships a Node older than 22, install a current one with [nvm](https://github.com/nvm-sh/nvm) (`nvm install 22`).
+The Node that current distributions ship is new enough (Ubuntu 24.04 has 18.19). If yours is older than 18.14, install a current one with [nvm](https://github.com/nvm-sh/nvm) (`nvm install 22`).
 
 **Windows**
 
@@ -86,7 +86,7 @@ The video lands in `outputs/<topic>/<agent>/<topic>.mp4`.
 
 Asked to install Hoca, or to make a video with it? Do this, in order:
 
-1. **Install what is missing.** Check `node --version` (22 or newer), `ffmpeg`, `rsvg-convert` and `uv`, and install the absent ones with the command for this system from [Quick start](#quick-start). On Windows, work inside WSL 2.
+1. **Install what is missing.** Check `node --version` (18.14 or newer), `ffmpeg`, `rsvg-convert` and `uv`, and install the absent ones with the command for this system from [Quick start](#quick-start). On Windows, work inside WSL 2.
 2. **Set up the repo.** Run `npm install`, then `cp .env.example .env` unless a `.env` is already there (never overwrite one), then `npm run setup` (it downloads about 400 MB of voices once, so let it finish), then `npm run doctor`. Fix every `FAIL` line before going on; a `note` line is informational.
 3. **Write the video yourself.** Do not run `npm run hoca -- "<topic>"`: that starts a second agent to do the writing. Read [AGENTS.md](AGENTS.md) and follow it. In short: if the `hoca_*` MCP tools are available, call `hoca_brief`, write the files it asks for, call `hoca_check` until the frames read clearly, then `hoca_render`. Otherwise use `node bin/hoca.mjs brief "<topic>" --agent <you>`, then `check` and `render` the same way.
 4. **Take settings from the user, not from guesses.** Everything comes from `.env`. Pass a flag or tool argument (`--format landscape`, `--lang tr`, `--no-voiceover`) only when the user asked for it, and then on every command for that video. Do not edit `.env`.
@@ -150,7 +150,7 @@ If you choose a remote option instead (an API model, or an API voice), Hoca says
 ## If something goes wrong
 
 - Run `npm run doctor`. It checks each tool, the voice and the agent, and says what to install.
-- **"already has a project"**: that topic was made before. Use `npm run hoca -- render "<topic>"` to render it again, or add `--force` to rewrite it.
+- **"already has a project"**: that topic was made before. Run `npm run rerender` to render the last project again, or copy the `--rerender` command the message prints for that folder. Both keep the saved script and scenes and the settings the project was made with. Adding `--force` to the original command is different: it runs the agent again and rewrites the script and every scene.
 - **The video is too long or too short**: the length is a target the script is written to. Hoca reports the real length; set `--duration` or edit the narration in `video.json` and render again.
 - **No voice for your language**: only Turkish and English voices are installed by default. On macOS the system voice is used for other languages; see Voices under Advanced.
 
@@ -193,6 +193,8 @@ npm run hoca -- "<topic>"            # write and render (same as: make "<topic>"
 npm run hoca -- brief "<topic>"      # print the brief, for an agent you are chatting with
 npm run hoca -- check <project>      # validate and write preview frames; no speech needed
 npm run hoca -- render <project>     # MP4 + .srt
+npm run rerender                     # the last project again, same settings, agent not run
+npm run hoca -- --rerender <project> # the same for a project you name
 npm run hoca -- tts "<text>" -o clip.wav
 npm run hoca -- config | doctor | list
 npm run hoca -- mcp                  # MCP server over stdio, for Claude Code and Codex
