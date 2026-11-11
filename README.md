@@ -69,15 +69,15 @@ Then, in this folder:
 
 ```bash
 npm install             # 1. dependencies
-npm run setup           # 2. a few screens: who writes, which language, which voices to download
+npm run setup           # 2. a few screens: who writes, which languages, which voices to download
 npm run doctor          # 3. checks that everything is ready
 npm run hoca -- "Why is the sky blue?"     # 4. your first video
 ```
 
-`npm run setup` asks its questions on screens you step through with the arrow keys, space to tick and enter for next, and writes your answers to `.env`. Nothing is downloaded until you tick a voice, and you only download the languages you tick. Run it again any time to change your answers or add a language. (If you skip it, your first `npm run hoca` opens it.)
+`npm run setup` asks its questions on screens you step through with the arrow keys, space to tick and enter for next, and writes your answers to `.env`. You tick every language you make videos in; with more than one, the next screen asks which is the default for on-screen text and which for the voice. The voices for the ticked languages are then pre-ticked. Nothing is downloaded until you tick a voice, and you only download the languages you tick. Run it again any time to change your answers or add a language. (If you skip it, your first `npm run hoca` opens it.)
 
 ```
-Hoca setup  ● ● ● ● ● ○ ○ ○  step 5 of 8
+Hoca setup  ● ● ● ● ● ● ○ ○ ○  step 6 of 9
 
 Which voices should be downloaded?
 Only ticked voices are downloaded. All run on this machine's CPU.
@@ -170,6 +170,7 @@ Every setting lives in `.env`, the copy of `.env.example` you made in [Quick sta
 ```ini
 AGENT=claude            # who writes: claude | codex | ollama | openai | anthropic
 LANGUAGE=en             # on-screen text, voice and subtitles: en, tr, ...
+LANGUAGES=en,tr         # every language you make videos in; LANGUAGE is the default
 VIDEO_FORMAT=vertical   # vertical | landscape | square
 VIDEO_DURATION=         # seconds; empty = 45 vertical, 120 landscape, 60 square
 VOICEOVER=true
