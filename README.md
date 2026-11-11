@@ -309,6 +309,8 @@ Scene files are code written by a model and run on your machine by Node. Use age
 | `openai`, `elevenlabs` | many | remote API | Need a key. `openai` also talks to a local OpenAI-compatible speech server via `TTS_BASE_URL`. |
 | `command` | any | yours | `TTS_COMMAND=my-tts --text-file {text_file} --out {out}` |
 
+**Listening back.** Small voice models sometimes slur a word, swallow one or cut a sentence short. Setup installs a local speech recognizer ([faster-whisper](https://github.com/SYSTRAN/faster-whisper), Whisper `small`, about 540 MB with its runtime) beside the voices, and every new sentence is transcribed after it is voiced and compared with the narration. The comparison understands each voice language's numbers and spoken symbols ("two hundred OK" = "200 OK", "on dörtte" = "14'te", "точка" = "."), so only real damage counts: a sentence that fails is voiced again with another take (a different seed or pace, then a rephrased reading) up to `VOICE_CHECK_RETRIES` times, and the best take is kept. Results are cached beside each clip, so only sentences whose text or voice changed are listened to; anything still unclear is listed as a warning with what was heard. `VOICE_CHECK=off` turns it off, `on` makes it required.
+
 With `TTS_PROVIDER=auto` (the default) Hoca takes the first installed local voice for the language. To compare voices:
 
 ```bash
@@ -332,6 +334,7 @@ Add any of these to `.env`, or pass `--set KEY=VALUE` for one run. `--env other.
 | `VOICEOVER_LANG`, `SUBTITLE_LANG` | Voice or subtitles in a different language than `LANGUAGE`. If they differ from each other, the agent also writes a sentence-for-sentence translation. |
 | `TTS_PROVIDER`, `TTS_VOICE`, `TTS_MODEL`, `TTS_SPEED` | Which voice, and how fast it speaks (1 = normal). |
 | `TTS_BASE_URL`, `TTS_API_KEY`, `ELEVENLABS_API_KEY`, `TTS_COMMAND` | Remote or custom speech engines. |
+| `VOICE_CHECK`, `VOICE_CHECK_MODEL`, `VOICE_CHECK_RETRIES` | Listen back to each new sentence: `auto` (default, when the recognizer is installed), `on`, `off`; Whisper size (`small`); retakes for an unclear sentence (2). |
 | `SUBTITLE_MODE` | `both` (default), `burn`, `file`. |
 | `VIDEO_FPS`, `VIDEO_RESOLUTION`, `VIDEO_CRF` | Frame rate (30), pixel size (e.g. `1280x720` for drafts), quality (18). |
 | `OUTPUT_DIR` | Where videos go (`outputs`). |

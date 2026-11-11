@@ -23,7 +23,7 @@ Hoca (Turkish for teacher) turns a topic into a short animated explainer video. 
 
    `check` needs no speech synthesis, so run it often and look at the frames it writes. Unchanged sentences reuse cached audio, so re-rendering after a small edit is cheap.
 
-3. Report the MP4 path and its duration, plus anything you could not verify. Do not stop at a plan, a script or static frames when a video was requested.
+3. Report the MP4 path and its duration, plus anything you could not verify. `render` listens back to every new sentence and re-voices unclear ones on its own; if it still warns that a sentence may be unclear, reword that sentence (spell out symbols, split a long one) and render again: only that sentence is re-voiced. Do not stop at a plan, a script or static frames when a video was requested.
 
 ## Through MCP
 

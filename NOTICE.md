@@ -45,6 +45,10 @@ Formulas are typeset with [MathJax](https://www.mathjax.org/) (Apache License 2.
 - [Piper](https://github.com/OHF-Voice/piper1-gpl) (GPL-3.0, installed as a separate package, not bundled) with these [voices](https://huggingface.co/rhasspy/piper-voices): de_DE-thorsten-medium ([Thorsten-Voice](https://github.com/thorstenMueller/Thorsten-Voice), CC0), ru_RU-denis-medium (CC0), uk_UA-ukrainian_tts-medium (CC0), bn_BD-google-medium ([OpenSLR 37](http://www.openslr.org/37/), CC-BY-SA-4.0), ur_PK-fasih-medium (MIT). Voices are downloaded only when picked in setup.
 - [FreyaTTS](https://huggingface.co/freyavoice/Freya-TTS) by Freya Voice (optional): Turkish, Apache-2.0
 
+Listening back to the voice (installed with any voice, used to catch and re-voice unclear sentences):
+
+- [faster-whisper](https://github.com/SYSTRAN/faster-whisper) by SYSTRAN, MIT, running OpenAI's [Whisper](https://github.com/openai/whisper) `small` model (MIT), converted for [CTranslate2](https://github.com/OpenNMT/CTranslate2) (MIT).
+
 The choice of Turkish defaults rests on [Freya-TR-Eval](https://huggingface.co/datasets/freyavoice/freya-tr-eval)
 by Freya Voice and the independent re-run published by Patientdesk.ai at
 https://speech.patientdesk.ai/benchmarks.
