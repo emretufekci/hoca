@@ -16,11 +16,12 @@
     "brief": "node bin/hoca.mjs brief",
     "check": "node bin/hoca.mjs check",
     "render": "node bin/hoca.mjs render",
+    "rerender": "node bin/hoca.mjs --rerender",
     "config": "node bin/hoca.mjs config",
     "doctor": "node bin/hoca.mjs doctor",
     "list": "node bin/hoca.mjs list",
     "mcp": "node bin/hoca.mjs mcp",
-    "setup": "bash scripts/setup-voices.sh",
+    "setup": "node bin/hoca.mjs setup",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {
@@ -28,6 +29,6 @@
     "mathjax-full": "^3.2.1"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=18.14"
   }
 }

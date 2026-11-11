@@ -41,12 +41,24 @@ Formulas are typeset with [MathJax](https://www.mathjax.org/) (Apache License 2.
 
 - [EMA Lightning](https://huggingface.co/canberkkkkkk/ema-lightning) by canberkkkkkk: Turkish, Apache-2.0
 - [Antalia-2 Mini](https://huggingface.co/cloud0day3/antalia-mini) by Patientdesk.ai: Turkish, Apache-2.0
-- [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) by hexgrad, via [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx): English, Apache-2.0
+- [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) by hexgrad, via [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx): English, French, Italian, Portuguese, Spanish, Apache-2.0
+- [Piper](https://github.com/OHF-Voice/piper1-gpl) (GPL-3.0, installed as a separate package, not bundled) with these [voices](https://huggingface.co/rhasspy/piper-voices): de_DE-thorsten-medium ([Thorsten-Voice](https://github.com/thorstenMueller/Thorsten-Voice), CC0), ru_RU-denis-medium (CC0), uk_UA-ukrainian_tts-medium (CC0), bn_BD-google-medium ([OpenSLR 37](http://www.openslr.org/37/), CC-BY-SA-4.0), ur_PK-fasih-medium (MIT). Voices are downloaded only when picked in setup.
 - [FreyaTTS](https://huggingface.co/freyavoice/Freya-TTS) by Freya Voice (optional): Turkish, Apache-2.0
+
+Listening back to the voice (installed with any voice, used to catch and re-voice unclear sentences):
+
+- [faster-whisper](https://github.com/SYSTRAN/faster-whisper) by SYSTRAN, MIT, running OpenAI's [Whisper](https://github.com/openai/whisper) `small` model (MIT), converted for [CTranslate2](https://github.com/OpenNMT/CTranslate2) (MIT).
 
 The choice of Turkish defaults rests on [Freya-TR-Eval](https://huggingface.co/datasets/freyavoice/freya-tr-eval)
 by Freya Voice and the independent re-run published by Patientdesk.ai at
 https://speech.patientdesk.ai/benchmarks.
+
+## Optional scene engines
+
+Installed only when picked in setup, and not bundled with Hoca:
+
+- [Remotion](https://www.remotion.dev) by Remotion AG, under the [Remotion License](https://www.remotion.dev/license): free for individuals, non-profits and companies of up to 3 employees; other companies need a company license.
+- [Blender](https://www.blender.org) by the Blender Foundation, GPL-3.0-or-later, run as a separate program.
 
 ## Inspiration
 

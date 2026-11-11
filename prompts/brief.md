@@ -4,6 +4,7 @@ Make a short animated explainer about: **{{TOPIC}}**
 
 You are the researcher, writer, storyboarder and animation coder. The video should explain the way a good mathematical animation does: one idea at a time, each idea shown as a picture that moves, with the narration saying what the picture is doing. Clarity is the measure of success.
 
+{{INPUTS}}
 ## Settings for this video (from .env)
 
 {{SETTINGS}}
@@ -13,7 +14,7 @@ You are the researcher, writer, storyboarder and animation coder. The video shou
 Write these files in `{{PROJECT_DIR}}` and nowhere else:
 
 - `video.json`: the script.
-- `scene-1.mjs`, `scene-2.mjs`, ...: one animation module per scene.
+- `scene-1.mjs`, `scene-2.mjs`, ...: one animation module per scene (`.tsx` or `.py` for the other engines below, where available).
 - Optionally `shared.mjs` for helpers your scenes share, and `sources.md` for facts you verified.
 
 ### video.json
@@ -56,6 +57,7 @@ export function render(ctx) {
 | `seconds`, `duration` | Time into this scene and its total length, measured from the real narration audio. |
 | `progress` | `seconds / duration`, 0 to 1. |
 | `beats` | One `{start, end, text}` per narration sentence, in seconds. `beat` is the index of the sentence being spoken (−1 before the first). |
+| `inputs` | The user's images by file name, `{href, width, height}`; pass one to `image()`. Empty when there are none. |
 | `format`, `fps`, `language`, `scene`, `sceneCount` | Context, if you need it. |
 
 Rules that keep renders working:
@@ -63,8 +65,10 @@ Rules that keep renders working:
 - Return a string that starts with `<svg` and is well-formed XML. Pass every piece of text through the kit's `text()`, or `esc()` it yourself: a raw `&` or `<` breaks the frame.
 - `render` must be deterministic: no `Math.random()`, no `Date`, no network, no file writes. The same `ctx` must give the same frame.
 - Only import from `#kit`, from your own files in the project folder, and from `node:` built-ins. No npm packages.
-- No `<foreignObject>`, no CSS animation, no `<animate>`, no external images or fonts. Motion comes from computing positions from `ctx`.
+- No `<foreignObject>`, no CSS animation, no `<animate>`, no external images or fonts. The only pictures are the user's own, placed with the kit's `image()`. Motion comes from computing positions from `ctx`.
 - Tie each reveal to the sentence that talks about it with `onBeat(ctx, i)` (sentence `i`, zero-based) so picture and voice stay in sync whatever the speech rate. If you rewrite the narration, recount the sentences.
+
+{{ENGINES}}
 
 ### The kit (`#kit`)
 

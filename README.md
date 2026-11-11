@@ -32,7 +32,7 @@ Press play for the full video with sound. The agent keeps its source notes next 
 
 ## Quick start
 
-You need [Node 22+](https://nodejs.org) and three tools: FFmpeg, librsvg and [uv](https://docs.astral.sh/uv/). Install them for your system:
+You need [Node 18.14+](https://nodejs.org) and three tools: FFmpeg, librsvg and [uv](https://docs.astral.sh/uv/). Install them for your system:
 
 **macOS**
 
@@ -53,7 +53,7 @@ sudo dnf install -y librsvg2-tools fontconfig curl git && sudo dnf install -y ff
 curl -LsSf https://astral.sh/uv/install.sh | sh    # uv, on any distribution
 ```
 
-If your distribution ships a Node older than 22, install a current one with [nvm](https://github.com/nvm-sh/nvm) (`nvm install 22`).
+The Node that current distributions ship is new enough (Ubuntu 24.04 has 18.19). If yours is older than 18.14, install a current one with [nvm](https://github.com/nvm-sh/nvm) (`nvm install 22`).
 
 **Windows**
 
@@ -69,16 +69,33 @@ Then, in this folder:
 
 ```bash
 npm install             # 1. dependencies
-cp .env.example .env    # 2. your settings: Hoca reads everything from this file
-npm run setup           # 3. local voices (Turkish and English, about 400 MB, one time)
-npm run doctor          # 4. checks that everything is ready
-npm run hoca -- "Why is the sky blue?"     # 5. your first video
+npm run setup           # 2. a few screens: who writes, which language, which voices to download
+npm run doctor          # 3. checks that everything is ready
+npm run hoca -- "Why is the sky blue?"     # 4. your first video
 ```
 
-Hoca is configured through `.env`: who writes the video, its language, format, length, voice and subtitles all come from that file, and `npm run config` shows what is in effect. As copied, it gives you:
+`npm run setup` asks its questions on screens you step through with the arrow keys, space to tick and enter for next, and writes your answers to `.env`. Nothing is downloaded until you tick a voice, and you only download the languages you tick. Run it again any time to change your answers or add a language. (If you skip it, your first `npm run hoca` opens it.)
 
-- **Writer:** [Claude Code](https://claude.com/claude-code) (`AGENT=claude`). If you use Codex instead, set `AGENT=codex` or add `--agent codex`. Neither needs an API key.
-- **Voice:** EMA Lightning for Turkish and Kokoro for English, both local. Hoca picks by the video's language; `TTS_PROVIDER` overrides it.
+```
+Hoca setup  ● ● ● ● ● ○ ○ ○  step 5 of 8
+
+Which voices should be downloaded?
+Only ticked voices are downloaded. All run on this machine's CPU.
+
+  ◉ English               Kokoro-82M · shared Kokoro model · Apache-2.0
+  ◉ Turkish               EMA Lightning · 20 MB · Apache-2.0
+  ◯ French                Kokoro-82M · shared Kokoro model · Apache-2.0
+❯ ◉ German                Piper de_DE-thorsten-medium · 63 MB · CC0
+  ◯ Russian               Piper ru_RU-denis-medium · 63 MB · CC0
+  ...
+
+3 selected · about 1.1 GB to download
+```
+
+Hoca is configured through `.env`: who writes the video, its language, format, length, voice and subtitles all come from that file, and `npm run config` shows what is in effect. Setup fills it in; `.env.example` lists every key if you prefer to edit it by hand.
+
+- **Writer:** [Claude Code](https://claude.com/claude-code) (`AGENT=claude`) or Codex (`AGENT=codex`), neither of which needs an API key; or an API model.
+- **Voice:** a small local voice per language, picked by the video's language: EMA Lightning for Turkish, Kokoro for English, French, Italian, Portuguese and Spanish, Piper for German, Russian, Ukrainian, Bengali and Urdu. `TTS_PROVIDER` overrides it.
 
 The video lands in `outputs/<topic>/<agent>/<topic>.mp4`.
 
@@ -86,8 +103,8 @@ The video lands in `outputs/<topic>/<agent>/<topic>.mp4`.
 
 Asked to install Hoca, or to make a video with it? Do this, in order:
 
-1. **Install what is missing.** Check `node --version` (22 or newer), `ffmpeg`, `rsvg-convert` and `uv`, and install the absent ones with the command for this system from [Quick start](#quick-start). On Windows, work inside WSL 2.
-2. **Set up the repo.** Run `npm install`, then `cp .env.example .env` unless a `.env` is already there (never overwrite one), then `npm run setup` (it downloads about 400 MB of voices once, so let it finish), then `npm run doctor`. Fix every `FAIL` line before going on; a `note` line is informational.
+1. **Install what is missing.** Check `node --version` (18.14 or newer), `ffmpeg`, `rsvg-convert` and `uv`, and install the absent ones with the command for this system from [Quick start](#quick-start). On Windows, work inside WSL 2.
+2. **Set up the repo.** Run `npm install`, then `cp .env.example .env` unless a `.env` is already there (never overwrite one), then `npm run setup -- --voices <codes>` with the language codes the user wants (for example `--voices en,tr`; `npm run setup -- --list` shows them all; it downloads each voice once, so let it finish), then `npm run doctor`. The setup screens need a person at the keyboard, so pass `--voices` rather than running `npm run setup` bare. Fix every `FAIL` line before going on; a `note` line is informational.
 3. **Write the video yourself.** Do not run `npm run hoca -- "<topic>"`: that starts a second agent to do the writing. Read [AGENTS.md](AGENTS.md) and follow it. In short: if the `hoca_*` MCP tools are available, call `hoca_brief`, write the files it asks for, call `hoca_check` until the frames read clearly, then `hoca_render`. Otherwise use `node bin/hoca.mjs brief "<topic>" --agent <you>`, then `check` and `render` the same way.
 4. **Take settings from the user, not from guesses.** Everything comes from `.env`. Pass a flag or tool argument (`--format landscape`, `--lang tr`, `--no-voiceover`) only when the user asked for it, and then on every command for that video. Do not edit `.env`.
 5. **Report** the MP4 path, its duration and anything you could not verify. A plan, a script or still frames is not a finished video.
@@ -102,6 +119,31 @@ npm run hoca -- "What is entropy?" --no-voiceover        # silent, subtitles onl
 ```
 
 By default you get a vertical video of about 45 seconds (Reels, TikTok, Shorts) in English, with a voice-over and burned-in subtitles.
+
+### From your own screenshots and images
+
+Give Hoca images and it builds the video around them: it shows each one, points at the parts it talks about and zooms into them.
+
+```bash
+npm run hoca -- --input dashboard.png                                  # explain what the screenshot shows
+npm run hoca -- "How to set up 2FA" -i step1.png -i step2.png -i step3.png
+```
+
+PNG and JPEG are used as they are; WebP, GIF, HEIC, BMP, TIFF and AVIF are converted to PNG. The images are copied into the project's `inputs/` folder, so `--rerender` needs nothing else. Through MCP, pass their paths as `inputs` to `hoca_brief`.
+
+### Remotion and Blender scenes (optional)
+
+Every scene is drawn with the built-in SVG kit unless you install another engine. Two are available, both rendering on the CPU, and a video can mix them scene by scene:
+
+| Engine | Scene file | Good for | Install |
+| --- | --- | --- | --- |
+| SVG kit (built in) | `scene-N.mjs` | Diagrams, graphs, formulas: the manim look | nothing |
+| [Remotion](https://www.remotion.dev) | `scene-N.tsx` | React layouts, typography, UI mock-ups | `npm run setup -- --engines remotion` (about 300 MB) |
+| [Blender](https://www.blender.org) | `scene-N.py` | Real 3D: solids, molecules, orbits, camera moves | `npm run setup -- --engines blender` (about 1 GB) |
+
+Once one is installed, the brief tells the agent about it and the agent decides where it helps. Blender renders with Cycles on the CPU, which takes seconds per frame, so the agent is asked to keep 3D scenes short; `BLENDER_SAMPLES` (default 16) trades quality for time, `BLENDER_RENDER=eevee` or `workbench` is much faster on a machine with a GPU, and `BLENDER_PATH` points at a Blender that is not on `PATH`.
+
+**Remotion is not open source.** It is free for individuals, non-profits and companies with up to 3 employees; larger companies need a [Remotion company license](https://www.remotion.dev/license). Hoca does not install it unless you tick it.
 
 While it works, Hoca tells you what runs where and how far along it is:
 
@@ -142,7 +184,7 @@ Or change one thing for one video with a flag: `--agent`, `--lang`, `--format`, 
 | Step | Default | Where it runs |
 | --- | --- | --- |
 | Writing the script and animation | Claude Code or Codex CLI | Remote model, through the CLI you are already logged in to (your subscription) |
-| Voice | EMA Lightning (Turkish), Kokoro (English) | Local, on your CPU. No account, nothing uploaded |
+| Voice | EMA Lightning (Turkish), Kokoro (English, French, Italian, Portuguese, Spanish), Piper (German, Russian, Ukrainian, Bengali, Urdu) | Local, on your CPU. No account, nothing uploaded |
 | Rendering | librsvg + FFmpeg | Local, on your CPU |
 
 If you choose a remote option instead (an API model, or an API voice), Hoca says so in the header before it starts.
@@ -150,9 +192,9 @@ If you choose a remote option instead (an API model, or an API voice), Hoca says
 ## If something goes wrong
 
 - Run `npm run doctor`. It checks each tool, the voice and the agent, and says what to install.
-- **"already has a project"**: that topic was made before. Use `npm run hoca -- render "<topic>"` to render it again, or add `--force` to rewrite it.
+- **"already has a project"**: that topic was made before. Run `npm run rerender` to render the last project again, or copy the `--rerender` command the message prints for that folder. Both keep the saved script and scenes and the settings the project was made with. Adding `--force` to the original command is different: it runs the agent again and rewrites the script and every scene.
 - **The video is too long or too short**: the length is a target the script is written to. Hoca reports the real length; set `--duration` or edit the narration in `video.json` and render again.
-- **No voice for your language**: only Turkish and English voices are installed by default. On macOS the system voice is used for other languages; see Voices under Advanced.
+- **No voice for your language**: only the voices you ticked in setup are installed. Add one with `npm run setup` (or `npm run setup -- --voices de`). For a language with no local voice, macOS uses its system voice; see Voices under Advanced.
 
 ---
 
@@ -193,6 +235,8 @@ npm run hoca -- "<topic>"            # write and render (same as: make "<topic>"
 npm run hoca -- brief "<topic>"      # print the brief, for an agent you are chatting with
 npm run hoca -- check <project>      # validate and write preview frames; no speech needed
 npm run hoca -- render <project>     # MP4 + .srt
+npm run rerender                     # the last project again, same settings, agent not run
+npm run hoca -- --rerender <project> # the same for a project you name
 npm run hoca -- tts "<text>" -o clip.wav
 npm run hoca -- config | doctor | list
 npm run hoca -- mcp                  # MCP server over stdio, for Claude Code and Codex
@@ -258,12 +302,14 @@ Scene files are code written by a model and run on your machine by Node. Use age
 | --- | --- | --- | --- |
 | `ema` | Turkish | local, CPU | [EMA Lightning](https://huggingface.co/canberkkkkkk/ema-lightning). Default for Turkish. |
 | `antalia` | Turkish | local, CPU | [Antalia-2 Mini](https://huggingface.co/cloud0day3/antalia-mini). Male voice; reads numbers, dates and amounts. |
-| `kokoro` | English (also es, fr, it, pt, hi, ja, zh) | local, CPU | [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M). Default for English. `TTS_VOICE=af_heart`, `am_michael`, `bf_emma`, ... |
-| `piper` | any language with a `voices/<lang>_*.onnx` file | local, CPU | [Piper](https://github.com/rhasspy/piper) voices you add yourself. |
-| `freya` | Turkish | local | [FreyaTTS](https://huggingface.co/freyavoice/Freya-TTS), larger and slower. Install with `npm run setup -- freya`. |
+| `kokoro` | English, French, Italian, Portuguese (Brazil), Spanish (also hi, ja, zh) | local, CPU | [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M). Default for those languages, each with its own native voice (`af_heart`, `ff_siwis`, `if_sara`, `pf_dora`, `ef_dora`). `TTS_VOICE=am_michael`, `bf_emma`, ... picks another. |
+| `piper` | German, Russian, Ukrainian, Bengali, Urdu; any language with a `voices/<lang>_*.onnx` file | local, CPU | [Piper](https://github.com/OHF-Voice/piper1-gpl) voices, 63–77 MB each: `de_DE-thorsten-medium`, `ru_RU-denis-medium`, `uk_UA-ukrainian_tts-medium`, `bn_BD-google-medium`, `ur_PK-fasih-medium`. Any other [Piper voice](https://huggingface.co/rhasspy/piper-voices) works if you put its `.onnx` and `.onnx.json` in `voices/`. For a voice with several speakers, `TTS_VOICE=<number>` picks one. |
+| `freya` | Turkish | local | [FreyaTTS](https://huggingface.co/freyavoice/Freya-TTS), much larger and slower, so setup does not offer it. Install it by hand: `git clone --depth 1 https://github.com/freyavoiceai/FreyaTTS.git .cache/FreyaTTS && uv pip install --python .venv/bin/python -r .cache/FreyaTTS/requirements.txt`. |
 | `say` | many | macOS | Built-in system voices, no setup. |
 | `openai`, `elevenlabs` | many | remote API | Need a key. `openai` also talks to a local OpenAI-compatible speech server via `TTS_BASE_URL`. |
 | `command` | any | yours | `TTS_COMMAND=my-tts --text-file {text_file} --out {out}` |
+
+**Listening back.** Small voice models sometimes slur a word, swallow one or cut a sentence short. Setup installs a local speech recognizer ([faster-whisper](https://github.com/SYSTRAN/faster-whisper), Whisper `small`, about 540 MB with its runtime) beside the voices, and every new sentence is transcribed after it is voiced and compared with the narration. The comparison understands each voice language's numbers and spoken symbols ("two hundred OK" = "200 OK", "on dörtte" = "14'te", "точка" = "."), so only real damage counts: a sentence that fails is voiced again with another take (a different seed or pace, then a rephrased reading) up to `VOICE_CHECK_RETRIES` times, and the best take is kept. Results are cached beside each clip, so only sentences whose text or voice changed are listened to; anything still unclear is listed as a warning with what was heard. `VOICE_CHECK=off` turns it off, `on` makes it required.
 
 With `TTS_PROVIDER=auto` (the default) Hoca takes the first installed local voice for the language. To compare voices:
 
@@ -288,6 +334,7 @@ Add any of these to `.env`, or pass `--set KEY=VALUE` for one run. `--env other.
 | `VOICEOVER_LANG`, `SUBTITLE_LANG` | Voice or subtitles in a different language than `LANGUAGE`. If they differ from each other, the agent also writes a sentence-for-sentence translation. |
 | `TTS_PROVIDER`, `TTS_VOICE`, `TTS_MODEL`, `TTS_SPEED` | Which voice, and how fast it speaks (1 = normal). |
 | `TTS_BASE_URL`, `TTS_API_KEY`, `ELEVENLABS_API_KEY`, `TTS_COMMAND` | Remote or custom speech engines. |
+| `VOICE_CHECK`, `VOICE_CHECK_MODEL`, `VOICE_CHECK_RETRIES` | Listen back to each new sentence: `auto` (default, when the recognizer is installed), `on`, `off`; Whisper size (`small`); retakes for an unclear sentence (2). |
 | `SUBTITLE_MODE` | `both` (default), `burn`, `file`. |
 | `VIDEO_FPS`, `VIDEO_RESOLUTION`, `VIDEO_CRF` | Frame rate (30), pixel size (e.g. `1280x720` for drafts), quality (18). |
 | `OUTPUT_DIR` | Where videos go (`outputs`). |
@@ -362,9 +409,9 @@ export function render(ctx) {
 | --- | --- | --- |
 | [EMA Lightning](https://huggingface.co/canberkkkkkk/ema-lightning) | canberkkkkkk | Default Turkish voice. 8.6M parameters, 48 kHz, Apache-2.0. |
 | [Antalia-2 Mini](https://huggingface.co/cloud0day3/antalia-mini) | [Patientdesk.ai](https://speech.patientdesk.ai/benchmarks) | Second Turkish voice. 7.6M parameters, 48 kHz, built-in reading of numbers, dates and amounts, Apache-2.0. |
-| [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) | hexgrad, run through [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx) | Default English voice. 82M parameters, Apache-2.0. |
+| [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) | hexgrad, run through [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx) | Default voice for English, French, Italian, Portuguese and Spanish. 82M parameters, Apache-2.0. |
 | [FreyaTTS](https://huggingface.co/freyavoice/Freya-TTS) | Freya Voice | Optional Turkish voice, Apache-2.0. |
-| [Piper](https://github.com/rhasspy/piper) | Rhasspy | Optional voices for other languages. |
+| [Piper](https://github.com/OHF-Voice/piper1-gpl) | Open Home Foundation (formerly Rhasspy), GPL-3.0, run as a separate package | Voices for German ([Thorsten](https://github.com/thorstenMueller/Thorsten-Voice), CC0), Russian (Denis, CC0), Ukrainian (ukrainian_tts, CC0), Bengali ([Google, OpenSLR 37](http://www.openslr.org/37/), CC-BY-SA-4.0) and Urdu (Fasih, MIT). |
 
 Both Turkish model cards measure themselves on [Freya-TR-Eval](https://huggingface.co/datasets/freyavoice/freya-tr-eval), the Turkish benchmark published by Freya Voice, and Patientdesk.ai keeps an independent [re-run for every Turkish system](https://speech.patientdesk.ai/benchmarks). Those results are why EMA Lightning and Antalia-2 Mini are the Turkish defaults here.
 

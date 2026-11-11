@@ -1,9 +1,12 @@
 """Local speech engines behind one interface. One model load per call, however many clips.
 
   tts_local.py --engine ema --text "Merhaba" --out hello.wav
-  tts_local.py --engine kokoro --voice af_heart --jobs jobs.json     # [{"text": "...", "out": "a.wav"}, ...]
+  tts_local.py --engine kokoro --voice af_heart --jobs jobs.json     # [{"text": "...", "out": "a.wav", "take": 0}, ...]
 
-Engines: ema (Turkish), antalia (Turkish), freya (Turkish), kokoro (English and a few others).
+  tts_local.py --engine piper --model voices/de_DE-thorsten-medium.onnx --jobs jobs.json
+
+Engines: ema (Turkish), antalia (Turkish), freya (Turkish), kokoro (English, French, Italian,
+Portuguese, Spanish and a few others), piper (one .onnx voice per language: German, Russian, ...).
 """
 
 import argparse
@@ -13,7 +16,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 KOKORO_DIR = ROOT / "voices" / "kokoro"
+# Kokoro's own voice for each language; one from another language reads with the wrong accent.
+KOKORO_VOICES = {"en-us": "af_heart", "en-gb": "bf_emma", "es": "ef_dora", "fr-fr": "ff_siwis", "it": "if_sara", "pt-br": "pf_dora", "hi": "hf_alpha", "ja": "jf_alpha", "cmn": "zf_xiaoxiao"}
 KOKORO_LANGS = {"en": "en-us", "en-US": "en-us", "en-GB": "en-gb", "es": "es", "fr": "fr-fr", "it": "it", "pt": "pt-br", "pt-BR": "pt-br", "hi": "hi", "ja": "ja", "zh": "cmn"}
+
+
+# A retake ("take" 1, 2, ...) asks the engine for a different reading of the same sentence, used when
+# listening back found the first one slurred or cut short: another seed, or a slightly different pace.
+PACE = [1.0, 0.94, 1.06, 0.9]
+
+
+def pace(job):
+    return PACE[int(job.get("take", 0)) % len(PACE)]
 
 
 def done():
@@ -26,7 +40,7 @@ def ema(jobs, args):
 
     tts = EMA()
     for job in jobs:
-        tts.say(job["text"], path=job["out"], seed=0)
+        tts.say(job["text"], path=job["out"], seed=int(job.get("take", 0)))
         done()
 
 
@@ -35,14 +49,14 @@ def antalia(jobs, args):
 
     tts = Antalia()
     for job in jobs:
-        tts.say(job["text"], path=job["out"], seed=0)
+        tts.say(job["text"], path=job["out"], seed=int(job.get("take", 0)))
         done()
 
 
 def freya(jobs, args):
     source = ROOT / ".cache" / "FreyaTTS"
     if not (source / "freyatts" / "pipeline.py").is_file():
-        raise SystemExit("FreyaTTS source missing. Run: npm run setup -- freya")
+        raise SystemExit("FreyaTTS source missing. See Voices in README.md for the two install commands.")
     sys.path.insert(0, str(source))
     from freyatts import FreyaTTS
 
@@ -55,7 +69,7 @@ def freya(jobs, args):
 def kokoro(jobs, args):
     model, voices = KOKORO_DIR / "kokoro-v1.0.onnx", KOKORO_DIR / "voices-v1.0.bin"
     if not model.is_file() or not voices.is_file():
-        raise SystemExit("Kokoro model files missing. Run: npm run setup")
+        raise SystemExit("Kokoro model files missing. Run: npm run setup -- --voices en")
     import soundfile
     from kokoro_onnx import Kokoro
 
@@ -64,12 +78,30 @@ def kokoro(jobs, args):
     if lang is None:
         raise SystemExit(f"Kokoro has no voice for '{args.lang}'")
     for job in jobs:
-        samples, rate = tts.create(job["text"], voice=args.voice or "af_heart", speed=1.0, lang=lang)
+        samples, rate = tts.create(job["text"], voice=args.voice or KOKORO_VOICES[lang], speed=pace(job), lang=lang)
         soundfile.write(job["out"], samples, rate)
         done()
 
 
-ENGINES = {"ema": ema, "antalia": antalia, "freya": freya, "kokoro": kokoro}
+def piper(jobs, args):
+    import wave
+
+    from piper import PiperVoice, SynthesisConfig
+
+    if not args.model or not Path(args.model).is_file():
+        raise SystemExit(f"Piper voice missing: {args.model or '(none given)'}. Run: npm run setup")
+    tts = PiperVoice.load(args.model)
+    # TTS_VOICE picks a speaker by number in a voice that has several.
+    speaker = int(args.voice) if args.voice.isdigit() else None
+    for job in jobs:
+        take = int(job.get("take", 0))
+        config = SynthesisConfig(speaker_id=speaker, length_scale=1 / pace(job) if take else None, noise_scale=0.667 + 0.08 * take if take else None)
+        with wave.open(job["out"], "wb") as out:
+            tts.synthesize_wav(job["text"], out, syn_config=config)
+        done()
+
+
+ENGINES = {"ema": ema, "antalia": antalia, "freya": freya, "kokoro": kokoro, "piper": piper}
 
 
 def main():
