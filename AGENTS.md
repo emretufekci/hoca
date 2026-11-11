@@ -10,6 +10,8 @@ Hoca (Turkish for teacher) turns a topic into a short animated explainer video. 
    node bin/hoca.mjs brief "<topic>" --agent claude    # or: --agent codex
    ```
 
+   If the user gave images (screenshots, diagrams, photos) for the video, add `--input <file>` for each one (`inputs` with `hoca_brief`); the topic may then be what to explain about them. They are copied into the project and the brief tells you how to show them.
+
    The brief is generated from `.env` and is the full specification: the target folder `outputs/<topic>/<agent>/`, frame size and safe areas, target length and word budget, narration and subtitle languages, the scene module contract, the `#kit` drawing helpers, style guidance and the workflow. Follow it rather than this summary. If the user states a setting in their request ("make it landscape", "in Turkish", "no voice"), pass it as a flag (`--format landscape`, `--lang tr`, `--no-voiceover`; see `--help`) on every command for that video instead of editing `.env`.
 
 2. Write `video.json` and the scene modules in that folder, then iterate:
@@ -35,8 +37,9 @@ The same steps are available as MCP tools, registered for Claude Code in `.mcp.j
 | `bin/hoca.mjs` | The CLI: `make`, `brief`, `check`, `render`, `tts`, `config`, `doctor`, `list`, `mcp`. |
 | `lib/kit.mjs` | Scene helpers, a port of manim's palette and animations to SVG, imported as `#kit`. |
 | `lib/` | Config, timeline, TTS providers, subtitles, renderer, agent runners, MCP server. |
+| `engines/` | Optional Remotion (`.tsx`) and Blender (`.py`) scene renderers; the brief describes them only when they are installed. |
 | `prompts/brief.md` | Template for the brief. |
-| `outputs/<topic>/<agent>/` | One project per topic and agent: sources, previews, audio cache and the video. |
+| `outputs/<topic>/<agent>/` | One project per topic and agent: sources, the user's images in `inputs/`, previews, audio cache and the video. |
 
 ## Ground rules
 

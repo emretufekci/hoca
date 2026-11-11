@@ -3,11 +3,14 @@
 import { existsSync, statSync, readdirSync, readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { loadConfig, describeConfig, projectPaths, ROOT } from '../lib/config.mjs';
+import { loadConfig, describeConfig, projectPaths, slugify, ROOT } from '../lib/config.mjs';
 
 const HELP = `Usage: npm run hoca -- "<topic>" [options]
        npm run hoca -- <command> [options]
 
+  setup                Pick the writer, language, format and the voices to download (screens);
+                       setup --voices de,ru --engines remotion,blender installs without them;
+                       setup --list lists what can be installed
   "<topic>"            Write the video with the agent from .env, then render it (same as make)
   --rerender [project] Render a finished project again with the settings it was made with;
                        the agent is not run. Without a project: the most recent one
@@ -31,11 +34,13 @@ Options (each overrides the matching .env key for this run):
   --subtitle-lang CODE SUBTITLE_LANG     --tts PROVIDER      TTS_PROVIDER
   --voiceover / --no-voiceover           --subtitles / --no-subtitles
   --set KEY=VALUE      Any other key     --env FILE          Use another env file
+  -i, --input FILE     An image the video is about (screenshot, diagram, photo); repeat for more.
+                       The topic may then be left out: hoca --input shot.png
   --slug NAME          Folder name for the topic            --force   Overwrite an existing project
   --json               Machine-readable output (check, config)
   -o, --out FILE       Output file (render, tts)`;
 
-const COMMANDS = ['make', 'brief', 'check', 'render', 'tts', 'config', 'doctor', 'list', 'mcp'];
+const COMMANDS = ['setup', 'make', 'brief', 'check', 'render', 'tts', 'config', 'doctor', 'list', 'mcp'];
 const FLAGS = { '--agent': 'AGENT', '--agent-name': 'AGENT_NAME', '--model': 'AGENT_MODEL', '--format': 'VIDEO_FORMAT', '--duration': 'VIDEO_DURATION', '--fps': 'VIDEO_FPS', '--lang': 'LANGUAGE', '--voice-lang': 'VOICEOVER_LANG', '--subtitle-lang': 'SUBTITLE_LANG', '--tts': 'TTS_PROVIDER' };
 const SWITCHES = { '--voiceover': ['VOICEOVER', 'true'], '--no-voiceover': ['VOICEOVER', 'false'], '--subtitles': ['SUBTITLES', 'true'], '--no-subtitles': ['SUBTITLES', 'false'] };
 
@@ -50,6 +55,10 @@ function parseArgs(argv) {
     else if (arg === '--env') options.env = value();
     else if (arg === '--slug') options.slug = value();
     else if (arg === '-o' || arg === '--out') options.out = value();
+    else if (arg === '--voices') options.voices = value();
+    else if (arg === '--engines') options.engines = value();
+    else if (arg === '--list' || arg === '--yes') options[arg.slice(2)] = true;
+    else if (arg === '-i' || arg === '--input') (options.inputs ||= []).push(value());
     else if (arg === '--force' || arg === '--json' || arg === '--help' || arg === '--rerender') options[arg.slice(2)] = true;
     else if (arg === '-h') options.help = true;
     // Everything after "--" is positional, so a topic or folder may start with a dash.
@@ -59,6 +68,8 @@ function parseArgs(argv) {
   }
   // Anything that is not a command is a topic: hoca "Türev nedir" means make "Türev nedir".
   if (positional.length && !COMMANDS.includes(positional[0])) positional.unshift('make');
+  // Images alone are enough to start a video: hoca --input shot.png
+  if (!positional.length && options.inputs && !options.rerender) positional.push('make');
   // --rerender is a command of its own, wherever it stands: hoca --rerender, hoca "<topic>" --rerender.
   if (options.rerender) {
     if (positional.length && !['make', 'render'].includes(positional[0])) throw new Error(`--rerender does not go with "${positional[0]}". Use: --rerender [project]`);
@@ -131,12 +142,40 @@ async function renderExisting(dir, config, output) {
   await renderProject(dir, config, { output });
 }
 
+/** The topic for make and brief; with only images given, the images are the topic. */
+function topicFrom(args, options, usage) {
+  const topic = args.join(' ').trim();
+  if (topic) return topic;
+  if (!options.inputs?.length) throw new Error(usage);
+  if (!options.slug) { try { options.slug = slugify(path.basename(options.inputs[0], path.extname(options.inputs[0])), { keepAll: true }); } catch { options.slug = 'image'; } }
+  return options.inputs.length === 1 ? 'What the attached image shows' : `What the ${options.inputs.length} attached images show`;
+}
+
+/** Copy --input images into the project before the brief is written, so it can describe them. */
+async function addInputs(dir, options) {
+  if (!options.inputs?.length) return;
+  const { importInputs } = await import('../lib/inputs.mjs');
+  for (const image of await importInputs(options.inputs, dir)) console.error(`Input      inputs/${image.name}  (${image.width}x${image.height})`);
+}
+
 const table = rows => { const width = Math.max(...Object.keys(rows).map(key => key.length)); return Object.entries(rows).map(([key, value]) => `${key.padEnd(width)}  ${value}`).join('\n'); };
 
 async function main() {
   const { command, args, overrides, options } = parseArgs(process.argv.slice(2));
-  if (!command || options.help) { console.log(HELP); return; }
   const envFile = options.env || process.env.HOCA_ENV_FILE;
+  if (command === 'setup') {
+    const { setupCommand } = await import('../lib/setup.mjs');
+    process.exitCode = (await setupCommand(options)) ? 0 : 1;
+    return;
+  }
+  // First run on a terminal: no .env yet, so show the setup screens instead of failing on defaults later.
+  if ((!command || command === 'make') && !options.help && !envFile && !existsSync(path.join(ROOT, '.env')) && process.stdin.isTTY && process.stdout.isTTY) {
+    const { runWizard } = await import('../lib/setup.mjs');
+    if (!(await runWizard({ firstRun: true }))) return;
+    if (!command) { console.log('\nNext: npm run hoca -- "Why is the sky blue?"'); return; }
+    console.log('');
+  }
+  if (!command || options.help) { console.log(HELP); return; }
   if (command === 'mcp') {
     // Starts before the settings are read: a broken .env should fail a tool call, not the server.
     if (options.env) process.env.HOCA_ENV_FILE = path.resolve(options.env);
@@ -172,17 +211,16 @@ async function main() {
       return;
     }
     case 'brief': {
-      const topic = args.join(' ').trim();
-      if (!topic) throw new Error('Usage: brief "<topic>"');
+      const topic = topicFrom(args, options, 'Usage: brief "<topic>" [--input image.png]');
       const { buildBrief } = await import('../lib/brief.mjs');
       const { dir } = projectPaths(config, topic, options);
       await mkdir(dir, { recursive: true });
+      await addInputs(dir, options);
       console.log(buildBrief(config, topic, dir, { mode: 'interactive' }));
       return;
     }
     case 'make': {
-      const topic = args.join(' ').trim();
-      if (!topic) throw new Error('Usage: make "<topic>"');
+      const topic = topicFrom(args, options, 'Usage: make "<topic>" [--input image.png]');
       const { dir } = projectPaths(config, topic, options);
       if (existsSync(path.join(dir, 'video.json')) && !options.force) throw new Error(`${path.relative(ROOT, dir)} already has a project. To render it again as it is:\n\n${renderHint(dir, overrides, options)}\nFor a second take beside this one, add --agent-name <name> to the topic command.`);
       const { author } = await import('../lib/author.mjs');
@@ -192,6 +230,7 @@ async function main() {
       const ui = createUi();
       // Remember this run's flags (never credentials) for --rerender.
       await mkdir(dir, { recursive: true });
+      await addInputs(dir, options);
       await writeFile(path.join(dir, RUN_FILE), JSON.stringify({ overrides: Object.fromEntries(Object.entries(overrides).filter(([key]) => !/KEY|TOKEN|SECRET/i.test(key))), env: envFile ? path.resolve(envFile) : undefined }, null, 2));
       console.log(`Hoca: "${topic}"\n\n${table({ ...(await runtimeRows(config)), Folder: path.relative(ROOT, dir) })}\n`);
       try {

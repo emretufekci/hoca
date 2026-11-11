@@ -1,0 +1,13 @@
+{
+  "name": "hoca-remotion",
+  "private": true,
+  "description": "Optional Remotion engine for Hoca scenes written in React. Installed by: npm run setup (tick Remotion). Remotion has its own license: https://www.remotion.dev/license",
+  "type": "module",
+  "dependencies": {
+    "@remotion/bundler": "4.0.540",
+    "@remotion/renderer": "4.0.540",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "remotion": "4.0.540"
+  }
+}

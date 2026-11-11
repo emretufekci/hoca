@@ -197,3 +197,62 @@ test('MCP server lists the tools and runs them', async () => {
     assert.equal((await call('resources/list')).error.code, -32601);
   } finally { child.stdin.end(); await rm(noisy, { recursive: true, force: true }); }
 });
+
+test('user images: imported, listed in the brief, placed and cropped by image()', async () => {
+  const { importInputs, readInputs } = await import('../lib/inputs.mjs');
+  const { image } = await import('../lib/kit.mjs');
+  const { run } = await import('../lib/proc.mjs');
+  const dir = await mkdtemp(path.join(tmpdir(), 'hoca-inputs-'));
+  try {
+    const source = path.join(dir, 'My Shot.png');
+    await run('ffmpeg', ['-loglevel', 'error', '-f', 'lavfi', '-i', 'color=red:size=400x200', '-frames:v', '1', source]);
+    const project = path.join(dir, 'project');
+    const [first] = await importInputs([source], project);
+    assert.deepEqual([first.name, first.width, first.height], ['my-shot.png', 400, 200]);
+    assert.equal((await importInputs([source], project))[0].name, 'my-shot.png', 'the same file is not copied twice');
+    const inputs = readInputs(project);
+    assert.deepEqual(Object.keys(inputs), ['my-shot.png']);
+    assert.ok(buildBrief(config(), 'x', project, { mode: 'interactive' }).includes("ctx.inputs['my-shot.png']"));
+
+    const pic = image(inputs['my-shot.png'], { x: 0, y: 0, w: 800, h: 800 });
+    assert.deepEqual([pic.w, pic.h, pic.y], [800, 400, 200], 'contain keeps the aspect ratio, centred');
+    assert.deepEqual(pic.at(200, 100), [400, 400]);
+    const zoomed = image(inputs['my-shot.png'], { x: 0, y: 0, w: 400, h: 200 }, { crop: [100, 50, 200, 100] });
+    assert.deepEqual(zoomed.at(100, 50), [0, 0], 'the crop corner lands on the box corner');
+    assert.match(`${zoomed}`, /href="inputs\/my-shot\.png"/);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('setup writes .env keys in place and knows every language it offers', async () => {
+  const { setEnvKeys } = await import('../lib/setup.mjs');
+  const { VOICES, findVoice, downloadSize } = await import('../lib/voices.mjs');
+  const text = 'AGENT=claude\n# AGENT_MODEL=qwen   note\nLANGUAGE=en\n';
+  const out = setEnvKeys(text, { AGENT: 'ollama', AGENT_MODEL: 'qwen2.5-coder:32b', LANGUAGE: 'de', OPENAI_API_KEY: 'sk test' });
+  assert.equal(out, 'AGENT=ollama\nAGENT_MODEL=qwen2.5-coder:32b\nLANGUAGE=de\nOPENAI_API_KEY="sk test"\n');
+  for (const code of ['en', 'tr', 'fr', 'it', 'pt', 'de', 'ru', 'uk', 'bn', 'ur']) assert.ok(findVoice(code), `a voice for ${code}`);
+  assert.equal(findVoice('pt-BR').voice, 'pf_dora');
+  assert.equal(findVoice('xx'), undefined);
+  assert.ok(VOICES.every(voice => voice.mb > 0 && voice.license && voice.sample));
+  assert.equal(downloadSize([]), 0);
+});
+
+test('topics in Cyrillic, Bengali and Urdu get folder names', () => {
+  assert.equal(slugify('Что такое энтропия'), 'chto-takoe-entropiya');
+  assert.equal(slugify('Що таке ентропія'), 'shcho-take-entropiya');
+  assert.match(slugify('এনট্রপি কী'), /^video-[0-9a-f]{8}$/);
+  assert.equal(slugify('اینٹروپی کیا ہے'), slugify('اینٹروپی کیا ہے'), 'stable');
+});
+
+test('scene engines: picked by extension, checked against it, and shown as finished frames', async () => {
+  const { sceneEngine, pictureFrame, externalContext } = await import('../lib/engines.mjs');
+  assert.equal(sceneEngine({ module: 'scene-1.mjs' }), 'svg');
+  assert.equal(sceneEngine({ module: 'scene-2.tsx' }), 'remotion');
+  assert.equal(sceneEngine({ module: 'scene-3.py' }), 'blender');
+  const manifest = scenes => ({ language: 'en', scenes });
+  assert.doesNotThrow(() => validateManifest(manifest([{ module: 'scene-1.tsx', narration: 'Hi there.' }, { module: 'scene-2.py', narration: 'Hi.' }])));
+  assert.throws(() => validateManifest(manifest([{ module: 'scene-1.mjs', engine: 'blender', narration: 'Hi.' }])), /blender scene is a \.py file/);
+  assert.throws(() => validateManifest(manifest([{ module: 'scene-1.mjs', engine: 'unity', narration: 'Hi.' }])), /engine must be/);
+  assert.match(pictureFrame('ext/scene-2/7.png', 1920, 1080), /^<svg [^>]*viewBox="0 0 1920 1080".*href="ext\/scene-2\/7\.png"/);
+  const ctx = externalContext({ index: 1, duration: 2, beats: [{ start: 0.3, end: 1.4, text: 'Hi.' }] }, config({ VIDEO_FORMAT: 'landscape' }), { scenes: [{}, {}] }, {}, '/p');
+  assert.deepEqual([ctx.width, ctx.fps, ctx.durationInFrames, ctx.sceneCount], [1920, 30, 61, 2]);
+});
